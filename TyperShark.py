@@ -15,11 +15,17 @@ import sys
 import thread
 import time
 
+#TODO
+#Profile
+#Start doing stuff in C to save time.
+
 #BUGS
-#Ignore shark corpses in OCR
+#Ignore shark corpses in OCR.
 #Detect if we've made a misspelling.
 #Determine which shark we're fighting and concentrate on it if we misspell something.
 #Don't fight sharks that aren't fully on the screen even if some are.
+#Do Piranhas.
+#Do bonus words.
 
 #Resolved
 #Don't start fighting until sharks are fully on the screen. (12/20 12:38 AM)
@@ -75,11 +81,10 @@ class Game:
 				pass
 	
 	def fight(self,screen):
-		#TODO
 		#0. Crop the screen to be relevant.
 		#1. Match the screen with targets.
 		print("getting words")
-		words =self.getWords(screen)
+		words =self.getWordsTest(screen)
 		#2. Sort the words by length and by similarity to previous words.
 		words.sort(key=(lambda x:self.getKey(self.prevWords,x)),reverse=True)
 		#3. Kill the targets
@@ -126,13 +131,54 @@ class Game:
 		if(leftmost+125<=width):
 			#Pass words Detected to tesseract and parse output.
 			blobs=blobs[:,(20+leftmost):]
-			Image.fromarray(blobs).save('wordsDetected'+str(cnt)+'.png')
+			cv2.imwrite('wordsDetected'+str(cnt)+'.png',blobs)
 			os.system('tesseract wordsDetected'+str(cnt)+'.png results'+str(cnt)+' nobatch letters.txt')
 			lines=open('results'+str(cnt)+'.txt').readlines()
 			words = [line.strip() for line in lines if line.strip()!='']
 			print(len(words))
 		return words
-	
+		
+	def getWordsTest(self,screen):
+		global cnt
+		cnt=cnt+1
+		targets=self.getTargets(screen)
+		words=[]
+		if(len(targets)):
+			blobs=np.concatenate(targets)
+			cv2.imwrite('wordsDetected'+str(cnt)+'.png',blobs)
+			os.system('tesseract wordsDetected'+str(cnt)+'.png results'+str(cnt)+' nobatch letters.txt')
+			lines=open('results'+str(cnt)+'.txt').readlines()
+			words = [line.strip() for line in lines if line.strip()!='']
+			print(len(words))
+		return words
+		
+	def getTargetsTest(self,screen):#Helper method for getWords. Take the screen and put each shark in its own box.
+		'''Get the words from the screen. (This will be the hard part.)'''
+		global cnt
+		(width,height)=screen.size
+		blobs=screen.convert('L')
+		blobs=np.array(blobs)
+		leftmost=0
+		targets=[]
+		(x,blobs)=(cv2.threshold(blobs, 20, 255, cv2.THRESH_BINARY_INV))
+		rects=[]
+		for y in range(width):
+			if(blobs[:,y].any()):
+				for x in range(height):
+					if  (blobs[x,y]):
+						if(y+200<=width and not(overlap(rects,[x-20,x+20,y,y+200]))):
+							rects.append([x-20,x+20,y,y+200])
+							targets.append((blobs[x-20:x+20,y:y+200]))
+		print('Targets\' length is '+str(len(targets)))
+		return targets
+		
+	def overlap(rects,rect):
+	#Rect =[top,bottom,left,right]
+		for r in rects:
+			if r[0]<=rect[1] and rect[0]<=r[1] and r[2]<=rect[3] and rect[2]<=r[3]:
+				return True
+		return False
+
 	def getTargets(self,screen):#Helper method for getWords. Take the screen and put each shark in its own box.
 		'''Get the words from the screen. (This will be the hard part.)'''
 		global cnt

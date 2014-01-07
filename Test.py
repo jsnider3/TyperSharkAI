@@ -19,6 +19,16 @@ from scipy import signal
 import sys
 
 global Screen
+global blobs
+
+def RGBConvMethodOne():
+	global Screen
+	test=np.array(Screen)
+	test = cv2.cvtColor(test, cv2.COLOR_RGB2GRAY )
+def RGBConvMethodTwo():#This is faster.
+	global Screen
+	blobs=Screen.convert('L')
+	blobs=np.array(blobs)
 
 def findSharks():
 	bmp= ImageGrab.grab()
@@ -28,6 +38,14 @@ def findSharks():
 	bmp.save('rage.bmp')
 	bmp.show()
 	
+def saveOne():#Faster
+	global blobs
+	cv2.imwrite('wordsDetected.png',blobs)
+	
+def saveTwo():
+	global blobs
+	Image.fromarray(blobs).save('wordsDetected.png')
+
 def getWordsTest():#TODO
 	'''Get the words from the screen. (This will be the hard part.)'''
 	global Screen
@@ -220,9 +238,16 @@ def preparingToDive(midscreen):
 	sumz=np.sum(equals)
 	print('time taken is:'+str(time.time()-start))
 	return sumz>300
-
 	
-Screen=splitScreen(Image.open('C:/Copy/George Mason Classes/2013 3Winter/Typer Shark AIwc/Typer Shark AI/trunk/Play0.png'))[3]
-print(timeit.timeit(getWordsTest,number=10))
-print(timeit.timeit(getWordsOld,number=10))
-assert(getWordsTest()==getWordsOld())
+def bonustest():
+	bmp= ImageGrab.grab()
+	bmp.show()
+
+Screen=ImageGrab.grab()
+blobs=np.array(Screen)
+print(timeit.timeit(saveOne,number=100))
+print(timeit.timeit(saveTwo,number=100))
+#Screen=splitScreen(Image.open('C:/Copy/George Mason Classes/2013 3Winter/Typer Shark AIwc/Typer Shark AI/trunk/Play0.png'))[3]
+#print(timeit.timeit(getWordsTest,number=10))
+#print(timeit.timeit(getWordsOld,number=10))
+#assert(getWordsTest()==getWordsOld())
