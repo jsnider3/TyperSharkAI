@@ -16,8 +16,8 @@ import thread
 import time
 
 #TODO
-#Profile
-#Start doing stuff in C to save time.
+#Make my own language data for tesseract.
+#Maybe do hOCR
 
 #BUGS
 #Ignore shark corpses in OCR.
@@ -34,6 +34,7 @@ import time
 
 cnt=0
 class Word:
+	
 	def __init__(self,str):
 		self.text=str
 		self.type=None
@@ -41,6 +42,7 @@ class Word:
 		self.y=0
 
 class Game:
+	
 	def __init__(self):
 		self.score=0
 		self.status="NOT_PLAYING"
@@ -48,6 +50,7 @@ class Game:
 		self.burstSpeed=self.normSpeed
 		self.zapperReady=False
 		self.prevWords=[]
+	
 		
 	def initialize(self):
 		'''Open up the game and start playing.'''
@@ -62,6 +65,7 @@ class Game:
 		Click(1,1)#Move the mouse to the upperleft.
 		time.sleep(.5)
 	
+	#@profile
 	def play(self):#Do everything
 		cnt=0
 		while(True):
@@ -79,18 +83,19 @@ class Game:
 				print('time to fight: '+str(time.time()-start))
 			else:#TODO
 				pass
-	
+	#@profile
 	def fight(self,screen):
 		#0. Crop the screen to be relevant.
 		#1. Match the screen with targets.
 		print("getting words")
-		words =self.getWordsTest(screen)
+		words =self.getWords(screen)
 		#2. Sort the words by length and by similarity to previous words.
 		words.sort(key=(lambda x:self.getKey(self.prevWords,x)),reverse=True)
 		#3. Kill the targets
 		self.type(words)
 		#thread.start_new_thread(self.type,(words,))
-		
+	
+	
 	def getKey(self,prWords,x):
 		max=0
 		for word in prWords:
@@ -100,7 +105,8 @@ class Game:
 			if cslen>max:
 				max=cslen
 		return max+len(x)/20
-
+	
+	
 	def type(self,words):
 		#Limiter is 85 WPM
 		#That is 7.08333333333 chars/second
@@ -110,9 +116,11 @@ class Game:
 		print words
 		for text in words:
 			for c in text:
-				autopy.key.tap(c)
-				time.sleep(delay)
-		
+				if c in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+					autopy.key.tap(c)
+					time.sleep(delay)
+	
+	#@profile
 	def getWords(self,screen):#TODO
 		'''Get the words from the screen. (This will be the hard part.)'''
 		global cnt
@@ -131,17 +139,18 @@ class Game:
 		if(leftmost+125<=width):
 			#Pass words Detected to tesseract and parse output.
 			blobs=blobs[:,(20+leftmost):]
-			cv2.imwrite('wordsDetected'+str(cnt)+'.png',blobs)
-			os.system('tesseract wordsDetected'+str(cnt)+'.png results'+str(cnt)+' nobatch letters.txt')
+			cv2.imwrite('wordsDetected'+str(cnt)+'.bmp',blobs)
+			os.system('tesseract wordsDetected'+str(cnt)+'.bmp results'+str(cnt)+' -l typSh')#nobatch letters.txt')
 			lines=open('results'+str(cnt)+'.txt').readlines()
 			words = [line.strip() for line in lines if line.strip()!='']
 			print(len(words))
 		return words
-		
+	
+	#@profile
 	def getWordsTest(self,screen):
 		global cnt
 		cnt=cnt+1
-		targets=self.getTargets(screen)
+		targets=self.getTargetsTest(screen)
 		words=[]
 		if(len(targets)):
 			blobs=np.concatenate(targets)
@@ -151,7 +160,8 @@ class Game:
 			words = [line.strip() for line in lines if line.strip()!='']
 			print(len(words))
 		return words
-		
+
+	#@profile
 	def getTargetsTest(self,screen):#Helper method for getWords. Take the screen and put each shark in its own box.
 		'''Get the words from the screen. (This will be the hard part.)'''
 		global cnt
@@ -171,14 +181,7 @@ class Game:
 							targets.append((blobs[x-20:x+20,y:y+200]))
 		print('Targets\' length is '+str(len(targets)))
 		return targets
-		
-	def overlap(rects,rect):
-	#Rect =[top,bottom,left,right]
-		for r in rects:
-			if r[0]<=rect[1] and rect[0]<=r[1] and r[2]<=rect[3] and rect[2]<=r[3]:
-				return True
-		return False
-
+	#@profile
 	def getTargets(self,screen):#Helper method for getWords. Take the screen and put each shark in its own box.
 		'''Get the words from the screen. (This will be the hard part.)'''
 		global cnt
@@ -214,7 +217,13 @@ class Game:
 	
 	def getDepth(self,leftscreen):#Determine our depth, based on an image of that part of the screen.
 		return 0
-	
+def overlap(rects,rect):
+#Rect =[top,bottom,left,right]
+	for r in rects:
+		if r[0]<=rect[1] and rect[0]<=r[1] and r[2]<=rect[3] and rect[2]<=r[3]:
+			return True
+	return False
+
 def determineDeadHelper(diver):
 	#DEBUG
 	(width,height)=diver.size
@@ -224,7 +233,7 @@ def determineDeadHelper(diver):
 	equals=[[(pixel1<=pixels).all()&(pixels<=pixel2).all() for pixels in row] for row in diver]	
 	sumz=np.sum(equals)
 	return sumz>650
-	
+#@profile	
 def getGameStatus(screens):#TODO
 	'''Determine if we're not playing the game, at the main menu, at a level select screen,
 	fighting fish, doing a secret level, or doing bonus words.'''
@@ -236,7 +245,7 @@ def getGameStatus(screens):#TODO
 	#	return "DEAD"
 	else:
 		return "FIGHTING"
-		
+#@profile		
 def preparingToDive(midscreen):
 	(width,height)=midscreen.size
 	lowbound=[175, 115, 70]
@@ -245,17 +254,21 @@ def preparingToDive(midscreen):
 	equals=[[(lowbound<=pixels).all()&(pixels<=upbound).all() for pixels in row] for row in diver]	
 	sumz=np.sum(equals)
 	return sumz>300
-	
+
+#@profile	
 def determineNotFighting(centscreen):
 	#start=time.time()
 	lowbound=[8, 32, 165]
 	upbound=[12, 45, 220]
 	diver=np.array(centscreen)
-	equals=[[(lowbound<=pixels).all()&(pixels<=upbound).all() for pixels in row] for row in diver]	
-	sumz=np.sum(equals)
+	#equals=[[(lowbound<=pixels).all()&(pixels<=upbound).all() for pixels in row] for row in diver]	
+	#sumz=np.sum(equals)
+	diver=cv2.inRange(diver,np.array(lowbound),np.array(upbound))
+	sumz=np.sum(diver)/255
 	#print('time taken is:'+str(time.time()-start))
 	return sumz<=250
 
+#@profile
 def splitScreen(screen):
 	#Split the screen into multiple parts, so we can have other methods focus on them.
 	x=0

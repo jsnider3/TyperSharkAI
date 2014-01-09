@@ -21,6 +21,25 @@ import sys
 global Screen
 global blobs
 
+#@profile
+def cvInRangeTest():
+	#start=time.time()
+	lowbound=[8, 32, 165]
+	upbound=[12, 45, 220]
+	image=ImageGrab.grab()
+	diver=np.array(image)
+	equals=[[(lowbound<=pixels).all()&(pixels<=upbound).all() for pixels in row] for row in diver]	
+	sum1=np.sum(equals)
+	#lowbound=[165,32,8]
+	#upbound=[220,45,12]
+	diver=cv2.inRange(diver,np.array(lowbound),np.array(upbound))
+	sum2=np.sum(diver)/255
+	print(sum1)
+	print(sum2)
+	#print('time taken is:'+str(time.time()-start))
+	print(sum1==sum2)
+	assert(sum1==sum2)
+
 def RGBConvMethodOne():
 	global Screen
 	test=np.array(Screen)
@@ -243,10 +262,12 @@ def bonustest():
 	bmp= ImageGrab.grab()
 	bmp.show()
 
-Screen=ImageGrab.grab()
-blobs=np.array(Screen)
-print(timeit.timeit(saveOne,number=100))
-print(timeit.timeit(saveTwo,number=100))
+for i in xrange(100):
+	cvInRangeTest()
+#Screen=ImageGrab.grab()
+#blobs=np.array(Screen)
+#print(timeit.timeit(saveOne,number=100))
+#print(timeit.timeit(saveTwo,number=100))
 #Screen=splitScreen(Image.open('C:/Copy/George Mason Classes/2013 3Winter/Typer Shark AIwc/Typer Shark AI/trunk/Play0.png'))[3]
 #print(timeit.timeit(getWordsTest,number=10))
 #print(timeit.timeit(getWordsOld,number=10))
